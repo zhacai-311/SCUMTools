@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多行迭代计算器 - 优化版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Noto Sans SC', sans-serif;
+        }
+        
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --bg-highlight: #2d3748;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-accent: #38bdf8;
+            --text-row-number: #f59e0b;
+            --border-color: #475569;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --button-primary: #3b82f6;
+            --button-hover: #2563eb;
+            --operator-add: #10b981;
+            --operator-subtract: #f59e0b;
+            --operator-multiply: #8b5cf6;
+            --operator-divide: #ef4444;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        /* 左侧悬浮面板 */
+        .side-panel {
+            width: 280px;
+            background-color: var(--bg-secondary);
+            padding: 20px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            border-right: 2px solid var(--border-color);
+        }
+        
+        .panel-title {
+            color: var(--text-accent);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-accent);
+            font-size: 0.9rem;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            -moz-appearance: textfield;
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--button-primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .input-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .operator-colors {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .color-title {
+            font-size: 0.9rem;
+            color: var(--text-accent);
+            margin-bottom: 10px;
+        }
+        
+        .color-example {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+        }
+        
+        .color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        .add-color {
+            background-color: var(--operator-add);
+        }
+        
+        .subtract-color {
+            background-color: var(--operator-subtract);
+        }
+        
+        .multiply-color {
+            background-color: var(--operator-multiply);
+        }
+        
+        .divide-color {
+            background-color: var(--operator-divide);
+        }
+        
+        /* 主内容区域 */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 20px;
+            max-width: 1000px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: var(--text-accent);
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            max-width: 800px;
+            margin: 0 auto 15px;
+        }
+        
+        .operator-key {
+            display: inline-block;
+            background-color: var(--bg-highlight);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 0 2px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        /* 计算器区域 */
+        .calculator {
+            background-color: var(--bg-secondary);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px var(--shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .calculation-explanation {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .explanation-title {
+            color: var(--text-accent);
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .explanation-content {
+            font-size: 0.85rem;
+        }
+        
+        .explanation-content p {
+            margin-bottom: 6px;
+        }
+        
+        .calculation-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .calculation-row {
+            background-color: var(--bg-card);
+            border-radius: 8px;
+            padding: 12px 15px;
+            border-left: 4px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .calculation-row.highlight {
+            background-color: var(--bg-highlight);
+            border-left-color: var(--success-color);
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.2);
+        }
+        
+        .row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .row-title {
+            font-weight: 600;
+            color: var(--text-row-number);
+            font-size: 0.95rem;
+        }
+        
+        .match-indicator {
+            background-color: var(--success-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            display: none;
+        }
+        
+        .row-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .calculation-expression {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .operator-display {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            user-select: none;
+            flex-shrink: 0;
+        }
+        
+        .operator-display.add {
+            background-color: var(--operator-add);
+            border-color: var(--operator-add);
+            color: white;
+        }
+        
+        .operator-display.subtract {
+            background-color: var(--operator-subtract);
+            border-color: var(--operator-subtract);
+            color: white;
+        }
+        
+        .operator-display.multiply {
+            background-color: var(--operator-multiply);
+            border-color: var(--operator-multiply);
+            color: white;
+        }
+        
+        .operator-display.divide {
+            background-color: var(--operator-divide);
+            border-color: var(--operator-divide);
+            color: white;
+        }
+        
+        .value-input {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            background-color: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            min-width: 0;
+        }
+        
+        .value-input:focus {
+            outline: none;
+            border-color: var(--button-primary);
+        }
+        
+        .empty-value {
+            border-color: #f59e0b;
+        }
+        
+        /* 按钮区域 */
+        .button-section {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .main-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        #calculateBtn {
+            background-color: var(--button-primary);
+            color: white;
+        }
+        
+        #calculateBtn:hover {
+            background-color: var(--button-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(59, 130, 246, 0.3);
+        }
+        
+        #randomBtn {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        #randomBtn:hover {
+            background-color: #0da271;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+        }
+        
+        #clearBtn {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        #clearBtn:hover {
+            background-color: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* 结果区域 */
+        .results {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: var(--bg-card);
+            border-radius: 8px;
+        }
+        
+        .results h2 {
+            color: var(--text-accent);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .result-item {
+            padding: 12px;
+            background-color: var(--bg-secondary);
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .result-match {
+            background-color: rgba(16, 185, 129, 0.15);
+            border-left: 3px solid var(--success-color);
+        }
+        
+        .result-path {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        
+        .result-values {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .result-value {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        
+        .match-type {
+            background-color: var(--success-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+        
+        .no-match {
+            text-align: center;
+            padding: 15px;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        
+        .calculation-steps {
+            margin-top: 6px;
+            padding: 8px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .step {
+            margin-bottom: 4px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .icon {
+            font-size: 1rem;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .side-panel {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 15px;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+            
+            .row-inputs {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .button-section {
+                gap: 10px;
+            }
+            
+            .main-button {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .calculation-row {
+                padding: 10px;
+            }
+            
+            .operator-display {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+            
+            .value-input {
+                padding: 8px;
+                font-size: 13px;
+            }
+            
+            .main-button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧悬浮面板 -->
+    <div class="side-panel">
+        <div class="panel-title">基本数值设置</div>
+        
+        <div class="input-group">
+            <label for="initialValue">初始值</label>
+            <input type="number" id="initialValue" placeholder="输入初始值（空值=0）" step="1">
+            <div class="input-hint">输入数字，空值视为0</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="finalValue1">最终值 1</label>
+            <input type="number" id="finalValue1" placeholder="输入最终值 1（空值=0）" step="1">
+            <div class="input-hint">输入数字，空值视为0</div>
+        </div>
+        
+        <div class="input-group">
+            <label for="finalValue2">最终值 2</label>
+            <input type="number" id="finalValue2" placeholder="输入最终值 2（空值=0）" step="1">
+            <div class="input-hint">输入数字，空值视为0</div>
+        </div>
+        
+        <div class="operator-colors">
+            <div class="color-title">运算符颜色标识</div>
+            <div class="color-example">
+                <div class="color-box add-color"></div>
+                <span>加法 (+)</span>
+            </div>
+            <div class="color-example">
+                <div class="color-box subtract-color"></div>
+                <span>减法 (-)</span>
+            </div>
+            <div class="color-example">
+                <div class="color-box multiply-color"></div>
+                <span>乘法 (×)</span>
+            </div>
+            <div class="color-example">
+                <div class="color-box divide-color"></div>
+                <span>除法 (÷)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <div class="container">
+            <header>
+                <h1>多行迭代计算器</h1>
+                <p class="description">
+                    在数值框中输入正数，按 <span class="operator-key">+</span> <span class="operator-key">-</span> <span class="operator-key">*</span> <span class="operator-key">/</span> 键选择运算符。默认运算符为 +。点击随机按钮将生成保证能通过的计算示例。
+                </p>
+            </header>
+            
+            <main class="calculator">
+                <div class="calculation-explanation">
+                    <div class="explanation-title">计算说明：</div>
+                    <div class="explanation-content">
+                        <p>1. 初始值分别与第一行的两个值计算 → 得到两个结果</p>
+                        <p>2. 这两个结果分别与下一行的两个值计算 → 得到新的两个结果</p>
+                        <p>3. 重复此过程，直到找到匹配最终值的路径</p>
+                        <p>4. 随机生成保证至少有一条匹配路径，重复路径不显示</p>
+                    </div>
+                </div>
+                
+                <div class="calculation-rows" id="calculationRows">
+                    <!-- 计算行将由JavaScript动态生成 -->
+                </div>
+                
+                <div class="button-section">
+                    <button id="calculateBtn" class="main-button">
+                        <span class="icon">✓</span>
+                        <span>计算并匹配</span>
+                    </button>
+                    <button id="randomBtn" class="main-button">
+                        <span class="icon">🎲</span>
+                        <span>随机生成（保证通过）</span>
+                    </button>
+                    <button id="clearBtn" class="main-button">
+                        <span class="icon">🗑️</span>
+                        <span>清空所有值</span>
+                    </button>
+                </div>
+                
+                <div class="results">
+                    <h2>匹配结果</h2>
+                    <div class="results-container" id="resultsContainer">
+                        <!-- 结果将由JavaScript动态生成 -->
+                    </div>
+                </div>
+            </main>
+            
+            <footer>
+                <p>© 2023 多行迭代计算器 | 优化版 | 左侧悬浮面板布局</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calculationRows = document.getElementById('calculationRows');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const calculateBtn = document.getElementById('calculateBtn');
+            const randomBtn = document.getElementById('randomBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            // 存储每行的运算符状态（默认为加法）
+            const rowOperators = Array.from({length: 8}, () => ({op1: '+', op2: '+'}));
+            
+            // 生成8行计算值输入区域
+            for (let i = 1; i <= 8; i++) {
+                const row = document.createElement('div');
+                row.className = 'calculation-row';
+                row.id = `row-${i}`;
+                row.dataset.rowIndex = i;
+                
+                row.innerHTML = `
+                    <div class="row-header">
+                        <div class="row-title">行 ${i}</div>
+                        <div class="match-indicator" id="match-indicator-${i}">匹配</div>
+                    </div>
+                    <div class="row-inputs">
+                        <div class="calculation-expression">
+                            <div class="operator-display add" id="op1-display-${i}">+</div>
+                            <input type="number" class="value-input" id="value1-${i}" placeholder="数值1" value="" min="0">
+                        </div>
+                        <div class="calculation-expression">
+                            <div class="operator-display add" id="op2-display-${i}">+</div>
+                            <input type="number" class="value-input" id="value2-${i}" placeholder="数值2" value="" min="0">
+                        </div>
+                    </div>
+                `;
+                
+                calculationRows.appendChild(row);
+                
+                // 为数值输入框添加监听事件
+                setupValueInputListeners(i);
+            }
+            
+            // 设置数值输入框监听
+            function setupValueInputListeners(rowIndex) {
+                const value1Input = document.getElementById(`value1-${rowIndex}`);
+                const value2Input = document.getElementById(`value2-${rowIndex}`);
+                
+                // 监听数值输入框的按键事件
+                value1Input.addEventListener('keydown', function(e) {
+                    handleOperatorKey(e, rowIndex, 1);
+                });
+                
+                value2Input.addEventListener('keydown', function(e) {
+                    handleOperatorKey(e, rowIndex, 2);
+                });
+                
+                // 数值输入框监听
+                [value1Input, value2Input].forEach((input, idx) => {
+                    input.addEventListener('input', function() {
+                        // 确保输入为正数
+                        const value = parseInt(this.value);
+                        if (value < 0) {
+                            this.value = Math.abs(value);
+                        }
+                    });
+                    
+                    input.addEventListener('blur', function() {
+                        const value = this.value.trim();
+                        if (value === '') {
+                            this.classList.add('empty-value');
+                        } else {
+                            this.classList.remove('empty-value');
+                            // 确保数值为正数
+                            const numValue = parseInt(value);
+                            if (numValue < 0) {
+                                this.value = Math.abs(numValue);
+                            }
+                        }
+                    });
+                    
+                    // 初始检查
+                    if (input.value.trim() === '') {
+                        input.classList.add('empty-value');
+                    }
+                });
+            }
+            
+            // 处理运算符按键
+            function handleOperatorKey(event, rowIndex, expressionIndex) {
+                // 检查按键是否为运算符
+                const key = event.key;
+                let operator = null;
+                let operatorSymbol = null;
+                let operatorName = null;
+                let operatorClass = null;
+                
+                switch(key) {
+                    case '+':
+                        operator = '+';
+                        operatorSymbol = '+';
+                        operatorName = '加法';
+                        operatorClass = 'add';
+                        break;
+                    case '-':
+                        operator = '-';
+                        operatorSymbol = '-';
+                        operatorName = '减法';
+                        operatorClass = 'subtract';
+                        break;
+                    case '*':
+                        operator = '*';
+                        operatorSymbol = '×';
+                        operatorName = '乘法';
+                        operatorClass = 'multiply';
+                        break;
+                    case '/':
+                        operator = '/';
+                        operatorSymbol = '÷';
+                        operatorName = '除法';
+                        operatorClass = 'divide';
+                        break;
+                }
+                
+                if (operator) {
+                    // 阻止默认行为，避免在输入框中输入运算符
+                    event.preventDefault();
+                    
+                    // 更新运算符状态
+                    if (expressionIndex === 1) {
+                        rowOperators[rowIndex-1].op1 = operator;
+                        // 更新显示器和类
+                        const display = document.getElementById(`op1-display-${rowIndex}`);
+                        display.textContent = operatorSymbol;
+                        display.className = `operator-display ${operatorClass}`;
+                    } else {
+                        rowOperators[rowIndex-1].op2 = operator;
+                        // 更新显示器和类
+                        const display = document.getElementById(`op2-display-${rowIndex}`);
+                        display.textContent = operatorSymbol;
+                        display.className = `operator-display ${operatorClass}`;
+                    }
+                }
+            }
+            
+            // 计算按钮事件
+            calculateBtn.addEventListener('click', function() {
+                calculateAndMatch();
+            });
+            
+            // 随机生成按钮事件
+            randomBtn.addEventListener('click', function() {
+                generateGuaranteedRandomExample();
+            });
+            
+            // 清空按钮事件
+            clearBtn.addEventListener('click', function() {
+                clearAll();
+            });
+            
+            // 获取数值（空值返回0，确保为正数）
+            function getNumberValue(value) {
+                if (value === '' || value === null || value === undefined) {
+                    return 0;
+                }
+                const num = parseInt(value);
+                return isNaN(num) ? 0 : Math.max(0, num); // 确保非负数
+            }
+            
+            // 获取运算符（空值返回+，确保有效）
+            function getOperatorValue(value) {
+                if (value === '' || value === null || value === undefined) {
+                    return '+'; // 默认加法
+                }
+                return value;
+            }
+            
+            // 计算并匹配函数
+            function calculateAndMatch() {
+                const initialValue = getNumberValue(document.getElementById('initialValue').value);
+                const finalValue1 = getNumberValue(document.getElementById('finalValue1').value);
+                const finalValue2 = getNumberValue(document.getElementById('finalValue2').value);
+                
+                // 清除之前的高亮和结果
+                clearHighlights();
+                resultsContainer.innerHTML = '';
+                
+                // 收集所有行的数据
+                const rowsData = [];
+                for (let i = 1; i <= 8; i++) {
+                    const operator1 = getOperatorValue(rowOperators[i-1].op1);
+                    const operator2 = getOperatorValue(rowOperators[i-1].op2);
+                    const value1 = getNumberValue(document.getElementById(`value1-${i}`).value);
+                    const value2 = getNumberValue(document.getElementById(`value2-${i}`).value);
+                    
+                    rowsData.push({
+                        index: i,
+                        operator1,
+                        operator2,
+                        value1,
+                        value2
+                    });
+                }
+                
+                if (rowsData.length === 0) {
+                    resultsContainer.innerHTML = '<div class="no-match">没有有效的计算行。</div>';
+                    return;
+                }
+                
+                // 用于存储找到的匹配路径（使用Set去重）
+                const foundPathsSet = new Set();
+                const foundPaths = [];
+                
+                // 深度优先搜索查找匹配路径
+                function dfs(currentRowIndex, currentResult1, currentResult2, path1, path2, usedRows, depth) {
+                    // 如果已经使用了所有行，停止搜索
+                    if (currentRowIndex >= rowsData.length) {
+                        return;
+                    }
+                    
+                    // 获取当前行的数据
+                    const row = rowsData[currentRowIndex];
+                    
+                    // 计算新的结果（处理除0情况）
+                    const newResult1 = safeCalculate(currentResult1, row.operator1, row.value1);
+                    const newResult2 = safeCalculate(currentResult2, row.operator2, row.value2);
+                    
+                    // 检查计算结果是否有效
+                    if (isNaN(newResult1) || !isFinite(newResult1) || isNaN(newResult2) || !isFinite(newResult2)) {
+                        return;
+                    }
+                    
+                    // 创建新的路径描述
+                    const newPath1 = `${path1} ${getOperatorSymbol(row.operator1)} ${row.value1} = ${newResult1}`;
+                    const newPath2 = `${path2} ${getOperatorSymbol(row.operator2)} ${row.value2} = ${newResult2}`;
+                    const newUsedRows = [...usedRows, row.index];
+                    
+                    // 检查是否匹配最终值
+                    if (newResult1 === finalValue1 && newResult2 === finalValue2) {
+                        // 创建路径的唯一标识（用于去重）
+                        const pathKey = newUsedRows.join('-');
+                        
+                        if (!foundPathsSet.has(pathKey)) {
+                            foundPathsSet.add(pathKey);
+                            
+                            // 找到匹配路径
+                            foundPaths.push({
+                                rows: [...newUsedRows],
+                                result1: newResult1,
+                                result2: newResult2,
+                                path1: newPath1,
+                                path2: newPath2,
+                                depth: depth + 1,
+                                pathKey: pathKey
+                            });
+                            
+                            // 高亮显示匹配的行
+                            newUsedRows.forEach(rowIndex => {
+                                document.getElementById(`row-${rowIndex}`).classList.add('highlight');
+                                document.getElementById(`match-indicator-${rowIndex}`).style.display = 'inline-block';
+                            });
+                        }
+                    }
+                    
+                    // 继续搜索下一行（顺序迭代）
+                    dfs(currentRowIndex + 1, newResult1, newResult2, newPath1, newPath2, newUsedRows, depth + 1);
+                    
+                    // 也可以跳过当前行继续搜索
+                    dfs(currentRowIndex + 1, currentResult1, currentResult2, path1, path2, usedRows, depth);
+                }
+                
+                // 从每一行作为起始点开始搜索
+                for (let startRow = 0; startRow < rowsData.length; startRow++) {
+                    // 初始路径
+                    const initialPath1 = `${initialValue}`;
+                    const initialPath2 = `${initialValue}`;
+                    
+                    // 开始深度优先搜索
+                    dfs(startRow, initialValue, initialValue, initialPath1, initialPath2, [], 0);
+                }
+                
+                // 显示结果
+                if (foundPaths.length === 0) {
+                    resultsContainer.innerHTML = '<div class="no-match">没有找到匹配的计算路径。</div>';
+                } else {
+                    // 按迭代深度排序（深度小的优先）
+                    foundPaths.sort((a, b) => a.depth - b.depth);
+                    
+                    // 显示匹配数量
+                    const matchCount = document.createElement('div');
+                    matchCount.className = 'result-item';
+                    matchCount.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+                    matchCount.style.fontWeight = 'bold';
+                    matchCount.innerHTML = `<span>找到 ${foundPaths.length} 条唯一匹配路径：</span>`;
+                    resultsContainer.appendChild(matchCount);
+                    
+                    // 显示每个匹配路径（最多显示5条）
+                    const displayPaths = foundPaths.slice(0, 5);
+                    displayPaths.forEach((path, idx) => {
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'result-item result-match';
+                        
+                        // 创建迭代路径显示
+                        const rowsText = path.rows.map(r => `<span style="color: var(--text-row-number);">行 ${r}</span>`).join(' → ');
+                        
+                        resultDiv.innerHTML = `
+                            <div style="flex: 1;">
+                                <div style="margin-bottom: 6px;">
+                                    <span style="color: var(--text-accent); font-weight: bold; font-size: 0.9rem;">路径 ${idx + 1}:</span>
+                                    <span style="font-size: 0.85rem;"> 使用 ${path.depth} 行 (${rowsText})</span>
+                                </div>
+                                <div class="calculation-steps">
+                                    <div class="step"><strong>路径1:</strong> ${path.path1}</div>
+                                    <div class="step"><strong>路径2:</strong> ${path.path2}</div>
+                                </div>
+                            </div>
+                            <div class="result-values">
+                                <div class="result-value">结果1: ${path.result1}</div>
+                                <div class="result-value">结果2: ${path.result2}</div>
+                                <span class="match-type">${path.depth}行迭代</span>
+                            </div>
+                        `;
+                        resultsContainer.appendChild(resultDiv);
+                    });
+                    
+                    // 如果还有更多路径，显示提示
+                    if (foundPaths.length > 5) {
+                        const moreDiv = document.createElement('div');
+                        moreDiv.className = 'no-match';
+                        moreDiv.innerHTML = `还有 ${foundPaths.length - 5} 条匹配路径未显示`;
+                        resultsContainer.appendChild(moreDiv);
+                    }
+                }
+            }
+            
+            // 安全计算函数（处理除0情况）
+            function safeCalculate(a, operator, b) {
+                if (operator === '/' && b === 0) {
+                    return NaN;
+                }
+                return calculate(a, operator, b);
+            }
+            
+            // 计算函数
+            function calculate(a, operator, b) {
+                switch(operator) {
+                    case '+': return a + b;
+                    case '-': return a - b;
+                    case '*': return a * b;
+                    case '/': return b !== 0 ? Math.floor(a / b) : NaN;
+                    default: return a + b; // 默认加法
+                }
+            }
+            
+            // 获取运算符符号（用于显示）
+            function getOperatorSymbol(operator) {
+                switch(operator) {
+                    case '+': return '+';
+                    case '-': return '-';
+                    case '*': return '×';
+                    case '/': return '÷';
+                    default: return '+'; // 默认加法
+                }
+            }
+            
+            // 清除高亮
+            function clearHighlights() {
+                for (let i = 1; i <= 8; i++) {
+                    document.getElementById(`row-${i}`).classList.remove('highlight');
+                    document.getElementById(`match-indicator-${i}`).style.display = 'none';
+                }
+            }
+            
+            // 生成保证通过的随机示例（每次都确保通过）
+            function generateGuaranteedRandomExample() {
+                // 清空所有值
+                clearAll();
+                
+                // 随机生成初始值 (1 到 20)
+                const initialValue = Math.floor(Math.random() * 20) + 1;
+                document.getElementById('initialValue').value = initialValue;
+                
+                // 随机选择2-4行作为匹配路径
+                const pathLength = Math.floor(Math.random() * 3) + 2; // 2-4行
+                const allRows = Array.from({length: 8}, (_, i) => i + 1);
+                const selectedRows = [];
+                
+                for (let i = 0; i < pathLength; i++) {
+                    const randomIndex = Math.floor(Math.random() * allRows.length);
+                    selectedRows.push(allRows.splice(randomIndex, 1)[0]);
+                }
+                
+                // 排序确保顺序
+                selectedRows.sort((a, b) => a - b);
+                
+                // 预定义运算符和数值，确保路径匹配
+                const operators = ['+', '-', '*', '/'];
+                const operatorClasses = {'+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide'};
+                const operatorSymbols = {'+': '+', '-': '-', '*': '×', '/': '÷'};
+                
+                // 为选中的行生成匹配路径
+                let currentResult1 = initialValue;
+                let currentResult2 = initialValue;
+                
+                // 记录每一步的计算，用于生成最终值
+                const pathCalculations = [];
+                
+                selectedRows.forEach((rowIndex, idx) => {
+                    // 为这一行选择运算符和数值，确保计算有效
+                    let op1, op2, val1, val2;
+                    let attempts = 0;
+                    
+                    do {
+                        // 随机选择运算符
+                        op1 = operators[Math.floor(Math.random() * operators.length)];
+                        op2 = operators[Math.floor(Math.random() * operators.length)];
+                        
+                        // 根据运算符生成合适的数值
+                        if (op1 === '+') {
+                            val1 = Math.floor(Math.random() * 10) + 1; // 1-10
+                        } else if (op1 === '-') {
+                            // 确保减法结果不为负数
+                            val1 = Math.floor(Math.random() * (currentResult1 + 1)); // 0-currentResult1
+                        } else if (op1 === '*') {
+                            val1 = Math.floor(Math.random() * 5) + 1; // 1-5
+                        } else { // 除法
+                            // 找currentResult1的因数
+                            const factors = [];
+                            for (let f = 1; f <= currentResult1; f++) {
+                                if (currentResult1 % f === 0) factors.push(f);
+                            }
+                            val1 = factors.length > 0 ? factors[Math.floor(Math.random() * factors.length)] : 1;
+                        }
+                        
+                        if (op2 === '+') {
+                            val2 = Math.floor(Math.random() * 10) + 1; // 1-10
+                        } else if (op2 === '-') {
+                            // 确保减法结果不为负数
+                            val2 = Math.floor(Math.random() * (currentResult2 + 1)); // 0-currentResult2
+                        } else if (op2 === '*') {
+                            val2 = Math.floor(Math.random() * 5) + 1; // 1-5
+                        } else { // 除法
+                            // 找currentResult2的因数
+                            const factors = [];
+                            for (let f = 1; f <= currentResult2; f++) {
+                                if (currentResult2 % f === 0) factors.push(f);
+                            }
+                            val2 = factors.length > 0 ? factors[Math.floor(Math.random() * factors.length)] : 1;
+                        }
+                        
+                        // 计算新的结果
+                        const newResult1 = calculate(currentResult1, op1, val1);
+                        const newResult2 = calculate(currentResult2, op2, val2);
+                        
+                        // 检查计算结果是否有效
+                        if (!isNaN(newResult1) && isFinite(newResult1) && 
+                            !isNaN(newResult2) && isFinite(newResult2) &&
+                            newResult1 >= 0 && newResult2 >= 0) {
+                            
+                            // 保存计算结果
+                            pathCalculations.push({
+                                rowIndex,
+                                op1, op2, val1, val2,
+                                result1: newResult1,
+                                result2: newResult2
+                            });
+                            
+                            // 更新当前结果
+                            currentResult1 = newResult1;
+                            currentResult2 = newResult2;
+                            break;
+                        }
+                        
+                        attempts++;
+                    } while (attempts < 10); // 最多尝试10次
+                    
+                    // 如果尝试失败，使用默认值
+                    if (attempts >= 10) {
+                        op1 = '+';
+                        op2 = '+';
+                        val1 = Math.floor(Math.random() * 5) + 1;
+                        val2 = Math.floor(Math.random() * 5) + 1;
+                        
+                        currentResult1 = calculate(currentResult1, op1, val1);
+                        currentResult2 = calculate(currentResult2, op2, val2);
+                        
+                        pathCalculations.push({
+                            rowIndex,
+                            op1, op2, val1, val2,
+                            result1: currentResult1,
+                            result2: currentResult2
+                        });
+                    }
+                });
+                
+                // 设置最终值为最后一步的结果
+                document.getElementById('finalValue1').value = currentResult1;
+                document.getElementById('finalValue2').value = currentResult2;
+                
+                // 为选中的行设置值和运算符
+                pathCalculations.forEach(calc => {
+                    const rowIndex = calc.rowIndex;
+                    
+                    // 设置匹配行的值和运算符
+                    document.getElementById(`value1-${rowIndex}`).value = calc.val1;
+                    document.getElementById(`value2-${rowIndex}`).value = calc.val2;
+                    
+                    // 设置运算符
+                    rowOperators[rowIndex-1] = {op1: calc.op1, op2: calc.op2};
+                    
+                    // 更新显示器和类
+                    const display1 = document.getElementById(`op1-display-${rowIndex}`);
+                    display1.textContent = operatorSymbols[calc.op1];
+                    display1.className = `operator-display ${operatorClasses[calc.op1]}`;
+                    
+                    const display2 = document.getElementById(`op2-display-${rowIndex}`);
+                    display2.textContent = operatorSymbols[calc.op2];
+                    display2.className = `operator-display ${operatorClasses[calc.op2]}`;
+                });
+                
+                // 为其他行设置随机值或空值
+                const remainingRows = allRows;
+                remainingRows.forEach(rowIndex => {
+                    // 50%概率为小正数值，50%概率为空值
+                    if (Math.random() < 0.5) {
+                        const op1 = operators[Math.floor(Math.random() * operators.length)];
+                        const op2 = operators[Math.floor(Math.random() * operators.length)];
+                        const op1Class = operatorClasses[op1];
+                        const op2Class = operatorClasses[op2];
+                        const op1Symbol = operatorSymbols[op1];
+                        const op2Symbol = operatorSymbols[op2];
+                        const val1 = Math.floor(Math.random() * 10); // 0 到 9
+                        const val2 = Math.floor(Math.random() * 10); // 0 到 9
+                        
+                        document.getElementById(`value1-${rowIndex}`).value = val1;
+                        document.getElementById(`value2-${rowIndex}`).value = val2;
+                        
+                        // 设置运算符
+                        rowOperators[rowIndex-1] = {op1, op2};
+                        
+                        // 更新显示器和类
+                        const display1 = document.getElementById(`op1-display-${rowIndex}`);
+                        display1.textContent = op1Symbol;
+                        display1.className = `operator-display ${op1Class}`;
+                        
+                        const display2 = document.getElementById(`op2-display-${rowIndex}`);
+                        display2.textContent = op2Symbol;
+                        display2.className = `operator-display ${op2Class}`;
+                    } else {
+                        // 空值
+                        document.getElementById(`value1-${rowIndex}`).value = '';
+                        document.getElementById(`value2-${rowIndex}`).value = '';
+                        // 运算符使用默认加法
+                        rowOperators[rowIndex-1] = {op1: '+', op2: '+'};
+                        
+                        // 更新显示器和类
+                        const display1 = document.getElementById(`op1-display-${rowIndex}`);
+                        display1.textContent = '+';
+                        display1.className = 'operator-display add';
+                        
+                        const display2 = document.getElementById(`op2-display-${rowIndex}`);
+                        display2.textContent = '+';
+                        display2.className = 'operator-display add';
+                    }
+                    
+                    // 标记空值输入框
+                    const value1Input = document.getElementById(`value1-${rowIndex}`);
+                    const value2Input = document.getElementById(`value2-${rowIndex}`);
+                    
+                    if (value1Input.value === '') {
+                        value1Input.classList.add('empty-value');
+                    }
+                    if (value2Input.value === '') {
+                        value2Input.classList.add('empty-value');
+                    }
+                });
+                
+                // 标记其他输入框的空值状态
+                ['initialValue', 'finalValue1', 'finalValue2'].forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input.value === '') {
+                        input.classList.add('empty-value');
+                    }
+                });
+                
+                // 计算并显示结果
+                setTimeout(() => {
+                    calculateAndMatch();
+                }, 100);
+            }
+            
+            // 清空所有值
+            function clearAll() {
+                document.getElementById('initialValue').value = '';
+                document.getElementById('finalValue1').value = '';
+                document.getElementById('finalValue2').value = '';
+                
+                // 标记为空值
+                ['initialValue', 'finalValue1', 'finalValue2'].forEach(id => {
+                    const input = document.getElementById(id);
+                    input.classList.add('empty-value');
+                });
+                
+                for (let i = 1; i <= 8; i++) {
+                    // 清空数值
+                    document.getElementById(`value1-${i}`).value = '';
+                    document.getElementById(`value2-${i}`).value = '';
+                    
+                    // 重置运算符为默认加法
+                    rowOperators[i-1] = {op1: '+', op2: '+'};
+                    
+                    // 更新显示器和类
+                    const display1 = document.getElementById(`op1-display-${i}`);
+                    display1.textContent = '+';
+                    display1.className = 'operator-display add';
+                    
+                    const display2 = document.getElementById(`op2-display-${i}`);
+                    display2.textContent = '+';
+                    display2.className = 'operator-display add';
+                    
+                    // 标记为空值
+                    const value1Input = document.getElementById(`value1-${i}`);
+                    const value2Input = document.getElementById(`value2-${i}`);
+                    value1Input.classList.add('empty-value');
+                    value2Input.classList.add('empty-value');
+                }
+                
+                clearHighlights();
+                resultsContainer.innerHTML = '<div class="no-match">已清空所有值。请填写初始值、最终值和计算值，然后点击"计算并匹配"按钮。</div>';
+            }
+            
+            // 初始化时显示示例
+            setTimeout(() => {
+                generateGuaranteedRandomExample();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
