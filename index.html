@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多行迭代计算器 - 优化版</title>
+    <title>多行迭代计算器 - 双面板版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -43,7 +43,7 @@
         }
         
         /* 左侧悬浮面板 */
-        .side-panel {
+        .left-panel {
             width: 280px;
             background-color: var(--bg-secondary);
             padding: 20px;
@@ -54,6 +54,20 @@
             overflow-y: auto;
             z-index: 100;
             border-right: 2px solid var(--border-color);
+        }
+        
+        /* 右侧悬浮面板 */
+        .right-panel {
+            width: 320px;
+            background-color: var(--bg-secondary);
+            padding: 20px;
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+            border-left: 2px solid var(--border-color);
         }
         
         .panel-title {
@@ -151,9 +165,11 @@
         /* 主内容区域 */
         .main-content {
             margin-left: 280px;
+            margin-right: 320px;
             flex: 1;
             padding: 20px;
-            max-width: 1000px;
+            max-width: 1200px;
+            min-width: 600px;
         }
         
         .container {
@@ -395,41 +411,55 @@
             box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
         }
         
-        /* 结果区域 */
-        .results {
-            margin-top: 25px;
-            padding: 20px;
-            background-color: var(--bg-card);
-            border-radius: 8px;
-        }
-        
-        .results h2 {
-            color: var(--text-accent);
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
+        /* 右侧结果区域 */
+        .results-panel {
+            width: 100%;
         }
         
         .results-container {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .results-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .results-container::-webkit-scrollbar-track {
+            background: var(--bg-card);
+            border-radius: 3px;
+        }
+        
+        .results-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
         }
         
         .result-item {
             padding: 12px;
-            background-color: var(--bg-secondary);
+            background-color: var(--bg-card);
             border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border-left: 4px solid var(--border-color);
             transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .result-item:hover {
+            background-color: var(--bg-highlight);
+            transform: translateX(-2px);
         }
         
         .result-match {
             background-color: rgba(16, 185, 129, 0.15);
-            border-left: 3px solid var(--success-color);
+            border-left-color: var(--success-color);
+        }
+        
+        .result-match:hover {
+            background-color: rgba(16, 185, 129, 0.25);
         }
         
         .result-path {
@@ -474,10 +504,51 @@
             background-color: rgba(0, 0, 0, 0.1);
             border-radius: 4px;
             font-size: 0.8rem;
+            display: none;
+        }
+        
+        .result-item.expanded .calculation-steps {
+            display: block;
         }
         
         .step {
             margin-bottom: 4px;
+        }
+        
+        .step:last-child {
+            margin-bottom: 0;
+        }
+        
+        .path-summary {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .path-summary strong {
+            color: var(--text-accent);
+        }
+        
+        .expand-icon {
+            float: right;
+            font-size: 0.8rem;
+            color: var(--text-accent);
+            transition: transform 0.3s;
+        }
+        
+        .result-item.expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+        
+        .match-count {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--success-color);
         }
         
         footer {
@@ -494,21 +565,44 @@
         }
         
         /* 响应式设计 */
-        @media (max-width: 768px) {
+        @media (max-width: 1200px) {
+            .main-content {
+                margin-left: 280px;
+                margin-right: 0;
+            }
+            
+            .right-panel {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 900px) {
             body {
                 flex-direction: column;
             }
             
-            .side-panel {
+            .left-panel, .right-panel {
                 width: 100%;
                 height: auto;
                 position: relative;
                 padding: 15px;
             }
             
+            .left-panel {
+                border-right: none;
+                border-bottom: 2px solid var(--border-color);
+            }
+            
+            .right-panel {
+                border-left: none;
+                border-top: 2px solid var(--border-color);
+            }
+            
             .main-content {
                 margin-left: 0;
+                margin-right: 0;
                 padding: 15px;
+                min-width: auto;
             }
             
             .row-inputs {
@@ -550,8 +644,8 @@
     </style>
 </head>
 <body>
-    <!-- 左侧悬浮面板 -->
-    <div class="side-panel">
+    <!-- 左侧悬浮面板 - 基本数值设置 -->
+    <div class="left-panel">
         <div class="panel-title">基本数值设置</div>
         
         <div class="input-group">
@@ -589,6 +683,16 @@
             <div class="color-example">
                 <div class="color-box divide-color"></div>
                 <span>除法 (÷)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧悬浮面板 - 匹配结果 -->
+    <div class="right-panel">
+        <div class="panel-title">匹配结果</div>
+        <div class="results-panel">
+            <div class="results-container" id="resultsContainer">
+                <!-- 结果将由JavaScript动态生成 -->
             </div>
         </div>
     </div>
@@ -632,17 +736,10 @@
                         <span>清空所有值</span>
                     </button>
                 </div>
-                
-                <div class="results">
-                    <h2>匹配结果</h2>
-                    <div class="results-container" id="resultsContainer">
-                        <!-- 结果将由JavaScript动态生成 -->
-                    </div>
-                </div>
             </main>
             
             <footer>
-                <p>© 2023 多行迭代计算器 | 优化版 | 左侧悬浮面板布局</p>
+                <p>© 2023 多行迭代计算器 | 双面板版 | 左右悬浮面板布局</p>
             </footer>
         </div>
     </div>
@@ -739,32 +836,27 @@
                 const key = event.key;
                 let operator = null;
                 let operatorSymbol = null;
-                let operatorName = null;
                 let operatorClass = null;
                 
                 switch(key) {
                     case '+':
                         operator = '+';
                         operatorSymbol = '+';
-                        operatorName = '加法';
                         operatorClass = 'add';
                         break;
                     case '-':
                         operator = '-';
                         operatorSymbol = '-';
-                        operatorName = '减法';
                         operatorClass = 'subtract';
                         break;
                     case '*':
                         operator = '*';
                         operatorSymbol = '×';
-                        operatorName = '乘法';
                         operatorClass = 'multiply';
                         break;
                     case '/':
                         operator = '/';
                         operatorSymbol = '÷';
-                        operatorName = '除法';
                         operatorClass = 'divide';
                         break;
                 }
@@ -935,14 +1027,12 @@
                     
                     // 显示匹配数量
                     const matchCount = document.createElement('div');
-                    matchCount.className = 'result-item';
-                    matchCount.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
-                    matchCount.style.fontWeight = 'bold';
-                    matchCount.innerHTML = `<span>找到 ${foundPaths.length} 条唯一匹配路径：</span>`;
+                    matchCount.className = 'match-count';
+                    matchCount.innerHTML = `找到 ${foundPaths.length} 条唯一匹配路径`;
                     resultsContainer.appendChild(matchCount);
                     
-                    // 显示每个匹配路径（最多显示5条）
-                    const displayPaths = foundPaths.slice(0, 5);
+                    // 显示每个匹配路径（最多显示8条）
+                    const displayPaths = foundPaths.slice(0, 8);
                     displayPaths.forEach((path, idx) => {
                         const resultDiv = document.createElement('div');
                         resultDiv.className = 'result-item result-match';
@@ -951,33 +1041,43 @@
                         const rowsText = path.rows.map(r => `<span style="color: var(--text-row-number);">行 ${r}</span>`).join(' → ');
                         
                         resultDiv.innerHTML = `
-                            <div style="flex: 1;">
-                                <div style="margin-bottom: 6px;">
-                                    <span style="color: var(--text-accent); font-weight: bold; font-size: 0.9rem;">路径 ${idx + 1}:</span>
-                                    <span style="font-size: 0.85rem;"> 使用 ${path.depth} 行 (${rowsText})</span>
-                                </div>
-                                <div class="calculation-steps">
-                                    <div class="step"><strong>路径1:</strong> ${path.path1}</div>
-                                    <div class="step"><strong>路径2:</strong> ${path.path2}</div>
-                                </div>
+                            <div class="path-summary">
+                                <strong>路径 ${idx + 1}</strong> · 使用 ${path.depth} 行
+                                <span class="expand-icon">▶</span>
+                            </div>
+                            <div class="calculation-steps">
+                                <div class="step"><strong>路径1:</strong> ${path.path1}</div>
+                                <div class="step"><strong>路径2:</strong> ${path.path2}</div>
+                                <div class="step"><strong>使用行:</strong> ${rowsText}</div>
                             </div>
                             <div class="result-values">
                                 <div class="result-value">结果1: ${path.result1}</div>
                                 <div class="result-value">结果2: ${path.result2}</div>
-                                <span class="match-type">${path.depth}行迭代</span>
                             </div>
                         `;
+                        
+                        // 添加点击展开/收起功能
+                        const expandIcon = resultDiv.querySelector('.expand-icon');
+                        resultDiv.addEventListener('click', function(e) {
+                            if (e.target !== expandIcon) {
+                                resultDiv.classList.toggle('expanded');
+                            }
+                        });
+                        
                         resultsContainer.appendChild(resultDiv);
                     });
                     
                     // 如果还有更多路径，显示提示
-                    if (foundPaths.length > 5) {
+                    if (foundPaths.length > 8) {
                         const moreDiv = document.createElement('div');
                         moreDiv.className = 'no-match';
-                        moreDiv.innerHTML = `还有 ${foundPaths.length - 5} 条匹配路径未显示`;
+                        moreDiv.innerHTML = `还有 ${foundPaths.length - 8} 条匹配路径未显示`;
                         resultsContainer.appendChild(moreDiv);
                     }
                 }
+                
+                // 滚动到顶部
+                resultsContainer.scrollTop = 0;
             }
             
             // 安全计算函数（处理除0情况）
@@ -1276,10 +1376,26 @@
                 resultsContainer.innerHTML = '<div class="no-match">已清空所有值。请填写初始值、最终值和计算值，然后点击"计算并匹配"按钮。</div>';
             }
             
-            // 初始化时显示示例
-            setTimeout(() => {
-                generateGuaranteedRandomExample();
-            }, 500);
+            // 初始化时设置为空值
+            function initializeEmptyValues() {
+                // 清空所有输入框
+                document.getElementById('initialValue').value = '';
+                document.getElementById('finalValue1').value = '';
+                document.getElementById('finalValue2').value = '';
+                
+                // 标记为空值
+                ['initialValue', 'finalValue1', 'finalValue2'].forEach(id => {
+                    const input = document.getElementById(id);
+                    input.classList.add('empty-value');
+                });
+                
+                // 清除结果区域
+                clearHighlights();
+                resultsContainer.innerHTML = '<div class="no-match">请填写初始值、最终值和计算值，然后点击"计算并匹配"按钮。</div>';
+            }
+            
+            // 初始化时设置为空值
+            initializeEmptyValues();
         });
     </script>
 </body>
