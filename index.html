@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多行迭代计算器 - 双面板版</title>
+    <title>多行迭代计算器 - 双面板优化版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -411,15 +411,43 @@
             box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
         }
         
-        /* 右侧结果区域 */
+        /* 右侧结果区域 - 优化版 */
         .results-panel {
             width: 100%;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .results-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            background-color: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-btn:hover {
+            background-color: var(--bg-highlight);
+            color: var(--text-primary);
         }
         
         .results-container {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             max-height: calc(100vh - 200px);
             overflow-y: auto;
             padding-right: 5px;
@@ -439,116 +467,176 @@
             border-radius: 3px;
         }
         
-        .result-item {
+        .results-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        .match-count {
+            background: linear-gradient(135deg, var(--success-color), #0da271);
+            color: white;
             padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
+        }
+        
+        .match-count .count {
+            font-size: 1.4rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .match-count .text {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .result-item {
             background-color: var(--bg-card);
-            border-radius: 6px;
-            border-left: 4px solid var(--border-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
             transition: all 0.3s;
-            cursor: pointer;
+            overflow: hidden;
         }
         
         .result-item:hover {
-            background-color: var(--bg-highlight);
-            transform: translateX(-2px);
+            border-color: var(--success-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
         
-        .result-match {
-            background-color: rgba(16, 185, 129, 0.15);
-            border-left-color: var(--success-color);
+        .result-header {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background-color: rgba(16, 185, 129, 0.05);
         }
         
-        .result-match:hover {
-            background-color: rgba(16, 185, 129, 0.25);
+        .result-header:hover {
+            background-color: rgba(16, 185, 129, 0.1);
         }
         
-        .result-path {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            color: var(--text-primary);
+        .path-info {
+            flex: 1;
+        }
+        
+        .path-title {
+            font-weight: 600;
+            color: var(--text-accent);
             font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+        
+        .path-details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .path-details strong {
+            color: var(--text-row-number);
+        }
+        
+        .expand-btn {
+            background: none;
+            border: none;
+            color: var(--text-accent);
+            cursor: pointer;
+            padding: 5px;
+            transition: transform 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .result-item.expanded .expand-btn {
+            transform: rotate(90deg);
+        }
+        
+        .result-content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border-top: 1px solid transparent;
+        }
+        
+        .result-item.expanded .result-content {
+            padding: 15px;
+            max-height: 500px;
+            border-top-color: var(--border-color);
         }
         
         .result-values {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
         }
         
         .result-value {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 0.9rem;
+            text-align: center;
+            padding: 10px;
+            background-color: var(--bg-secondary);
+            border-radius: 6px;
         }
         
-        .match-type {
-            background-color: var(--success-color);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 12px;
+        .result-label {
             font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        
+        .result-number {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        
+        .calculation-steps {
+            background-color: var(--bg-secondary);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.8rem;
+        }
+        
+        .step {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .step:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .step-label {
+            color: var(--text-accent);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .step-content {
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
         }
         
         .no-match {
             text-align: center;
-            padding: 15px;
+            padding: 30px 20px;
             color: var(--text-secondary);
             font-style: italic;
             font-size: 0.9rem;
         }
         
-        .calculation-steps {
-            margin-top: 6px;
-            padding: 8px;
-            background-color: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-            font-size: 0.8rem;
-            display: none;
-        }
-        
-        .result-item.expanded .calculation-steps {
-            display: block;
-        }
-        
-        .step {
-            margin-bottom: 4px;
-        }
-        
-        .step:last-child {
-            margin-bottom: 0;
-        }
-        
-        .path-summary {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-        }
-        
-        .path-summary strong {
-            color: var(--text-accent);
-        }
-        
-        .expand-icon {
-            float: right;
-            font-size: 0.8rem;
-            color: var(--text-accent);
-            transition: transform 0.3s;
-        }
-        
-        .result-item.expanded .expand-icon {
-            transform: rotate(90deg);
-        }
-        
-        .match-count {
-            background-color: rgba(16, 185, 129, 0.2);
-            color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            text-align: center;
+        .no-match-icon {
+            font-size: 2rem;
             margin-bottom: 10px;
-            border-left: 4px solid var(--success-color);
+            opacity: 0.5;
         }
         
         footer {
@@ -564,6 +652,36 @@
             font-size: 1rem;
         }
         
+        /* 移动端优化 */
+        .mobile-panel-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: var(--button-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mobile-panel-toggle.left {
+            left: 10px;
+            background-color: var(--success-color);
+        }
+        
+        .mobile-panel-toggle.right {
+            right: 10px;
+            background-color: var(--warning-color);
+        }
+        
         /* 响应式设计 */
         @media (max-width: 1200px) {
             .main-content {
@@ -574,11 +692,27 @@
             .right-panel {
                 display: none;
             }
+            
+            .mobile-panel-toggle.right {
+                display: flex;
+            }
+            
+            .right-panel.mobile-open {
+                display: block;
+                width: 100%;
+                height: 70vh;
+                top: auto;
+                bottom: 0;
+                border-left: none;
+                border-top: 2px solid var(--border-color);
+                z-index: 1001;
+            }
         }
         
         @media (max-width: 900px) {
             body {
                 flex-direction: column;
+                padding-bottom: 0;
             }
             
             .left-panel, .right-panel {
@@ -586,6 +720,7 @@
                 height: auto;
                 position: relative;
                 padding: 15px;
+                max-height: 80vh;
             }
             
             .left-panel {
@@ -596,6 +731,16 @@
             .right-panel {
                 border-left: none;
                 border-top: 2px solid var(--border-color);
+                display: none;
+            }
+            
+            .right-panel.mobile-open {
+                display: block;
+                position: fixed;
+                top: auto;
+                bottom: 0;
+                height: 70vh;
+                z-index: 1001;
             }
             
             .main-content {
@@ -603,6 +748,14 @@
                 margin-right: 0;
                 padding: 15px;
                 min-width: auto;
+            }
+            
+            .mobile-panel-toggle {
+                display: flex;
+            }
+            
+            .mobile-panel-toggle.left {
+                display: flex;
             }
             
             .row-inputs {
@@ -617,6 +770,15 @@
             .main-button {
                 padding: 10px 16px;
                 font-size: 13px;
+            }
+            
+            .results-container {
+                max-height: 50vh;
+            }
+            
+            .result-values {
+                grid-template-columns: 1fr;
+                gap: 10px;
             }
         }
         
@@ -640,12 +802,45 @@
                 padding: 8px 12px;
                 font-size: 12px;
             }
+            
+            .result-values {
+                grid-template-columns: 1fr;
+            }
+            
+            .mobile-panel-toggle {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+            
+            .results-container {
+                max-height: 40vh;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .button-section {
+                flex-direction: column;
+            }
+            
+            .main-button {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .result-values {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 移动端面板切换按钮 -->
+    <button class="mobile-panel-toggle left" id="mobileLeftToggle">⚙️</button>
+    <button class="mobile-panel-toggle right" id="mobileRightToggle">📊</button>
+
     <!-- 左侧悬浮面板 - 基本数值设置 -->
-    <div class="left-panel">
+    <div class="left-panel" id="leftPanel">
         <div class="panel-title">基本数值设置</div>
         
         <div class="input-group">
@@ -688,7 +883,7 @@
     </div>
 
     <!-- 右侧悬浮面板 - 匹配结果 -->
-    <div class="right-panel">
+    <div class="right-panel" id="rightPanel">
         <div class="panel-title">匹配结果</div>
         <div class="results-panel">
             <div class="results-container" id="resultsContainer">
@@ -739,7 +934,7 @@
             </main>
             
             <footer>
-                <p>© 2023 多行迭代计算器 | 双面板版 | 左右悬浮面板布局</p>
+                <p>© 2023 多行迭代计算器 | 双面板优化版 | 移动端优化</p>
             </footer>
         </div>
     </div>
@@ -751,9 +946,66 @@
             const calculateBtn = document.getElementById('calculateBtn');
             const randomBtn = document.getElementById('randomBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const leftPanel = document.getElementById('leftPanel');
+            const rightPanel = document.getElementById('rightPanel');
+            const mobileLeftToggle = document.getElementById('mobileLeftToggle');
+            const mobileRightToggle = document.getElementById('mobileRightToggle');
             
             // 存储每行的运算符状态（默认为加法）
             const rowOperators = Array.from({length: 8}, () => ({op1: '+', op2: '+'}));
+            
+            // 移动端面板状态
+            let leftPanelOpen = false;
+            let rightPanelOpen = false;
+            
+            // 移动端面板切换
+            mobileLeftToggle.addEventListener('click', function() {
+                if (window.innerWidth <= 900) {
+                    leftPanelOpen = !leftPanelOpen;
+                    if (leftPanelOpen) {
+                        leftPanel.style.display = 'block';
+                        setTimeout(() => leftPanel.classList.add('mobile-open'), 10);
+                        mobileLeftToggle.textContent = '✕';
+                    } else {
+                        leftPanel.classList.remove('mobile-open');
+                        setTimeout(() => {
+                            if (!leftPanelOpen) leftPanel.style.display = 'none';
+                        }, 300);
+                        mobileLeftToggle.textContent = '⚙️';
+                    }
+                }
+            });
+            
+            mobileRightToggle.addEventListener('click', function() {
+                if (window.innerWidth <= 900) {
+                    rightPanelOpen = !rightPanelOpen;
+                    if (rightPanelOpen) {
+                        rightPanel.style.display = 'block';
+                        setTimeout(() => rightPanel.classList.add('mobile-open'), 10);
+                        mobileRightToggle.textContent = '✕';
+                    } else {
+                        rightPanel.classList.remove('mobile-open');
+                        setTimeout(() => {
+                            if (!rightPanelOpen) rightPanel.style.display = 'none';
+                        }, 300);
+                        mobileRightToggle.textContent = '📊';
+                    }
+                }
+            });
+            
+            // 窗口大小变化时重置面板状态
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 900) {
+                    leftPanel.style.display = 'block';
+                    rightPanel.style.display = 'block';
+                    leftPanel.classList.remove('mobile-open');
+                    rightPanel.classList.remove('mobile-open');
+                    leftPanelOpen = false;
+                    rightPanelOpen = false;
+                    mobileLeftToggle.textContent = '⚙️';
+                    mobileRightToggle.textContent = '📊';
+                }
+            });
             
             // 生成8行计算值输入区域
             for (let i = 1; i <= 8; i++) {
@@ -942,7 +1194,12 @@
                 }
                 
                 if (rowsData.length === 0) {
-                    resultsContainer.innerHTML = '<div class="no-match">没有有效的计算行。</div>';
+                    resultsContainer.innerHTML = `
+                        <div class="no-match">
+                            <div class="no-match-icon">🔍</div>
+                            <div>没有有效的计算行。</div>
+                        </div>
+                    `;
                     return;
                 }
                 
@@ -1020,59 +1277,98 @@
                 
                 // 显示结果
                 if (foundPaths.length === 0) {
-                    resultsContainer.innerHTML = '<div class="no-match">没有找到匹配的计算路径。</div>';
+                    resultsContainer.innerHTML = `
+                        <div class="no-match">
+                            <div class="no-match-icon">😕</div>
+                            <div>没有找到匹配的计算路径。</div>
+                        </div>
+                    `;
                 } else {
                     // 按迭代深度排序（深度小的优先）
                     foundPaths.sort((a, b) => a.depth - b.depth);
                     
-                    // 显示匹配数量
+                    // 显示匹配数量卡片
                     const matchCount = document.createElement('div');
                     matchCount.className = 'match-count';
-                    matchCount.innerHTML = `找到 ${foundPaths.length} 条唯一匹配路径`;
+                    matchCount.innerHTML = `
+                        <div class="count">${foundPaths.length}</div>
+                        <div class="text">条匹配路径</div>
+                    `;
                     resultsContainer.appendChild(matchCount);
                     
-                    // 显示每个匹配路径（最多显示8条）
-                    const displayPaths = foundPaths.slice(0, 8);
+                    // 显示每个匹配路径（最多显示6条）
+                    const displayPaths = foundPaths.slice(0, 6);
                     displayPaths.forEach((path, idx) => {
                         const resultDiv = document.createElement('div');
-                        resultDiv.className = 'result-item result-match';
+                        resultDiv.className = 'result-item';
                         
                         // 创建迭代路径显示
-                        const rowsText = path.rows.map(r => `<span style="color: var(--text-row-number);">行 ${r}</span>`).join(' → ');
+                        const rowsText = path.rows.map(r => `<strong>行 ${r}</strong>`).join(' → ');
                         
                         resultDiv.innerHTML = `
-                            <div class="path-summary">
-                                <strong>路径 ${idx + 1}</strong> · 使用 ${path.depth} 行
-                                <span class="expand-icon">▶</span>
+                            <div class="result-header">
+                                <div class="path-info">
+                                    <div class="path-title">路径 ${idx + 1}</div>
+                                    <div class="path-details">使用 ${path.depth} 行 · ${rowsText}</div>
+                                </div>
+                                <button class="expand-btn">▶</button>
                             </div>
-                            <div class="calculation-steps">
-                                <div class="step"><strong>路径1:</strong> ${path.path1}</div>
-                                <div class="step"><strong>路径2:</strong> ${path.path2}</div>
-                                <div class="step"><strong>使用行:</strong> ${rowsText}</div>
-                            </div>
-                            <div class="result-values">
-                                <div class="result-value">结果1: ${path.result1}</div>
-                                <div class="result-value">结果2: ${path.result2}</div>
+                            <div class="result-content">
+                                <div class="result-values">
+                                    <div class="result-value">
+                                        <div class="result-label">最终值 1</div>
+                                        <div class="result-number">${path.result1}</div>
+                                    </div>
+                                    <div class="result-value">
+                                        <div class="result-label">最终值 2</div>
+                                        <div class="result-number">${path.result2}</div>
+                                    </div>
+                                </div>
+                                <div class="calculation-steps">
+                                    <div class="step">
+                                        <div class="step-label">路径 1</div>
+                                        <div class="step-content">${path.path1}</div>
+                                    </div>
+                                    <div class="step">
+                                        <div class="step-label">路径 2</div>
+                                        <div class="step-content">${path.path2}</div>
+                                    </div>
+                                </div>
                             </div>
                         `;
                         
                         // 添加点击展开/收起功能
-                        const expandIcon = resultDiv.querySelector('.expand-icon');
-                        resultDiv.addEventListener('click', function(e) {
-                            if (e.target !== expandIcon) {
+                        const header = resultDiv.querySelector('.result-header');
+                        const expandBtn = resultDiv.querySelector('.expand-btn');
+                        
+                        header.addEventListener('click', function(e) {
+                            if (e.target !== expandBtn) {
                                 resultDiv.classList.toggle('expanded');
                             }
+                        });
+                        
+                        expandBtn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            resultDiv.classList.toggle('expanded');
                         });
                         
                         resultsContainer.appendChild(resultDiv);
                     });
                     
                     // 如果还有更多路径，显示提示
-                    if (foundPaths.length > 8) {
+                    if (foundPaths.length > 6) {
                         const moreDiv = document.createElement('div');
                         moreDiv.className = 'no-match';
-                        moreDiv.innerHTML = `还有 ${foundPaths.length - 8} 条匹配路径未显示`;
+                        moreDiv.innerHTML = `还有 ${foundPaths.length - 6} 条匹配路径未显示`;
                         resultsContainer.appendChild(moreDiv);
+                    }
+                    
+                    // 移动端自动打开右侧面板
+                    if (window.innerWidth <= 900) {
+                        rightPanelOpen = true;
+                        rightPanel.style.display = 'block';
+                        setTimeout(() => rightPanel.classList.add('mobile-open'), 10);
+                        mobileRightToggle.textContent = '✕';
                     }
                 }
                 
@@ -1373,7 +1669,22 @@
                 }
                 
                 clearHighlights();
-                resultsContainer.innerHTML = '<div class="no-match">已清空所有值。请填写初始值、最终值和计算值，然后点击"计算并匹配"按钮。</div>';
+                resultsContainer.innerHTML = `
+                    <div class="no-match">
+                        <div class="no-match-icon">📝</div>
+                        <div>请填写数值后点击"计算并匹配"</div>
+                    </div>
+                `;
+                
+                // 移动端关闭右侧面板
+                if (window.innerWidth <= 900) {
+                    rightPanelOpen = false;
+                    rightPanel.classList.remove('mobile-open');
+                    setTimeout(() => {
+                        if (!rightPanelOpen) rightPanel.style.display = 'none';
+                    }, 300);
+                    mobileRightToggle.textContent = '📊';
+                }
             }
             
             // 初始化时设置为空值
@@ -1391,7 +1702,20 @@
                 
                 // 清除结果区域
                 clearHighlights();
-                resultsContainer.innerHTML = '<div class="no-match">请填写初始值、最终值和计算值，然后点击"计算并匹配"按钮。</div>';
+                resultsContainer.innerHTML = `
+                    <div class="no-match">
+                        <div class="no-match-icon">🚀</div>
+                        <div>填写数值后点击"计算并匹配"</div>
+                    </div>
+                `;
+                
+                // 移动端初始化
+                if (window.innerWidth <= 900) {
+                    leftPanel.style.display = 'none';
+                    rightPanel.style.display = 'none';
+                    mobileLeftToggle.style.display = 'flex';
+                    mobileRightToggle.style.display = 'flex';
+                }
             }
             
             // 初始化时设置为空值
